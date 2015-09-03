@@ -31,7 +31,14 @@ module NewRelic::Rack
     def traced_call(env)
       result = @app.call(env)   # [status, headers, response]
 
-      js_to_inject = NewRelic::Agent.browser_timing_header
+      if NewRelic::Agent.config[:'content_security_policy_nonce']
+        nonce_regex = /(?<=nonce-).*=/
+        csp_nonce = nonce_regex.match(result[1]["Content-Security-Policy"]).to_s
+        js_to_inject = NewRelic::Agent.browser_timing_header_nonced(csp_nonce)
+      else
+        js_to_inject = NewRelic::Agent.browser_timing_header
+      end
+
       if (js_to_inject != "") && should_instrument?(env, result[0], result[1])
         response_string = autoinstrument_source(result[2], result[1], js_to_inject)
 

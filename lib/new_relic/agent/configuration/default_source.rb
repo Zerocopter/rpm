@@ -304,6 +304,13 @@ module NewRelic
           :allowed_from_server => false,
           :description => 'Log level for agent logging: error, warn, info or debug.'
         },
+        :content_security_policy_nonce => {
+          :default => false,
+          :public => true,
+          :type => Boolean,
+          :allowed_from_server => false,
+          :description => 'Enable or disable the nonce attribute in inline script tags.'
+        },
         :high_security => {
           :default => false,
           :public => true,

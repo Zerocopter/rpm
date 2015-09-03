@@ -605,9 +605,15 @@ module NewRelic
     #
     # @api public
     #
+
     def browser_timing_header
       return "" unless agent
       agent.javascript_instrumentor.browser_timing_header
+    end
+
+    def browser_timing_header_nonced(csp_nonce)
+      return "" unless agent
+      agent.javascript_instrumentor.browser_timing_header_nonced(csp_nonce)
     end
 
     # @!endgroup

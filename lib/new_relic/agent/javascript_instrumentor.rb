@@ -102,8 +102,28 @@ module NewRelic
         ''
       end
 
+      def browser_timing_header_nonced(csp_nonce) #THREAD_LOCAL_ACCESS
+        return '' unless js_enabled_and_ready? # fast exit
+
+        state = NewRelic::Agent::TransactionState.tl_get
+
+        return '' unless insert_js?(state) # slower exit
+
+        bt_config = browser_timing_config_nonced(state, csp_nonce)
+        return '' if bt_config.empty?
+
+        bt_config + browser_timing_loader_nonced(csp_nonce)
+      rescue => e
+        ::NewRelic::Agent.logger.debug "Failure during RUM browser_timing_header construction", e
+        ''
+      end
+
       def browser_timing_loader
         html_safe_if_needed("\n<script type=\"text/javascript\">#{Agent.config[:js_agent_loader]}</script>")
+      end
+
+      def browser_timing_loader_nonced(csp_nonce)
+        html_safe_if_needed("\n<script type=\"text/javascript\" nonce=\"#{csp_nonce}\">#{Agent.config[:js_agent_loader]}</script>")
       end
 
       def browser_timing_config(state)
@@ -114,6 +134,19 @@ module NewRelic
           data = data_for_js_agent(state)
           json = NewRelic::JSONWrapper.dump(data)
           return html_safe_if_needed("\n<script type=\"text/javascript\">window.NREUM||(NREUM={});NREUM.info=#{json}</script>")
+        end
+
+        ''
+      end
+
+      def browser_timing_config_nonced(state, csp_nonce)
+        txn = state.current_transaction
+        return '' if txn.nil?
+
+        txn.freeze_name_and_execute_if_not_ignored do
+          data = data_for_js_agent(state)
+          json = NewRelic::JSONWrapper.dump(data)
+          return html_safe_if_needed("\n<script type=\"text/javascript\" nonce=\"#{csp_nonce}\">window.NREUM||(NREUM={});NREUM.info=#{json}</script>")
         end
 
         ''
